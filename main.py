@@ -4,6 +4,12 @@ import sys
 from getpass import getpass
 
 from checker import analyse
+from generator import (
+    generate_passphrase,
+    generate_password,
+    passphrase_entropy,
+    password_entropy,
+)
 
 BAR_WIDTH = 30
 
@@ -34,6 +40,43 @@ def show_report(password: str) -> None:
     print()
 
 
+def ask_number(prompt: str, default: int, low: int, high: int) -> int:
+    """Ask for a whole number in a range. Pressing Enter uses the default."""
+    text = input(f"{prompt} ({low}-{high}, Enter for {default}): ").strip()
+    if text == "":
+        return default
+    if text.isdigit() and low <= int(text) <= high:
+        return int(text)
+    print(f"Not a valid number, using {default}.")
+    return default
+
+
+def check_passwords(read) -> None:
+    print("\nPress Enter on an empty line to go back.")
+    while True:
+        password = read("Enter a password to check: ")
+        if password == "":
+            return
+        show_report(password)
+
+
+def make_password() -> None:
+    length = ask_number("Password length", 16, 8, 64)
+    password = generate_password(length)
+    print(f"\nGenerated password: {password}")
+    print(f"Randomness: about {password_entropy(length)} bits")
+    show_report(password)
+
+
+def make_passphrase() -> None:
+    words = ask_number("Number of words", 6, 4, 10)
+    phrase = generate_passphrase(words)
+    print(f"\nGenerated passphrase: {phrase}")
+    print(f"Real randomness: {passphrase_entropy(words)} bits "
+          "(from a 256-word list, so 8 bits per word)")
+    print("Tip: more words means stronger. 8 or more is a very good choice.\n")
+
+
 def main() -> None:
     visible = "--show" in sys.argv
     read = input if visible else getpass
@@ -42,15 +85,26 @@ def main() -> None:
     if visible:
         print("Visible mode: what you type will show on screen.")
     else:
-        print("Your typing is hidden. Nothing is stored or sent anywhere.")
-    print("Press Enter on an empty line to quit.\n")
+        print("Typed passwords are hidden. Nothing is stored or sent anywhere.")
 
     while True:
-        password = read("Enter a password to check: ")
-        if password == "":
+        print("\n1. Check a password")
+        print("2. Generate a random password")
+        print("3. Generate a passphrase")
+        print("4. Quit")
+        choice = input("Choose an option: ").strip()
+
+        if choice == "1":
+            check_passwords(read)
+        elif choice == "2":
+            make_password()
+        elif choice == "3":
+            make_passphrase()
+        elif choice == "4":
             print("Goodbye.")
             break
-        show_report(password)
+        else:
+            print("Please enter 1, 2, 3 or 4.")
 
 
 if __name__ == "__main__":
